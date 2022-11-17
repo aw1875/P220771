@@ -1,25 +1,19 @@
-# New Project
+# P220771 UI
 
-> ✨ Bootstrapped with Create Snowpack App (CSA).
+### Steps
 
-## Available Scripts
-
-### npm start
-
-Runs the app in the development mode.
-Open http://localhost:8080 to view it in the browser.
-
-The page will reload if you make edits.
-You will also see any lint errors in the console.
-
-### npm run build
-
-Builds a static copy of your site to the `build/` folder.
-Your app is ready to be deployed!
-
-**For the best production performance:** Add a build bundler plugin like "@snowpack/plugin-webpack" to your `snowpack.config.mjs` config file.
-
-### npm test
-
-Launches the application test runner.
-Run with the `--watch` flag (`npm test -- --watch`) to run in interactive watch mode.
+1. Clone the repository: 
+```bash
+git clone https://github.com/aw1875/P220771.git
+```
+2. Install dependencies & Build Project:
+```bash
+cd P220771
+yarn install
+yarn build
+```
+3. Move build files. Either copy all the files from the `build` folder to the `static` folder inside of the Python `Server` directory or run:
+```bash
+cd build
+cp -r * ../../Server/static
+```

@@ -1,47 +1,81 @@
-import { useState } from "react";
-import "./App.css";
+import { useEffect, useState } from "react";
+import { io } from 'socket.io-client';
+const socket = io();
 
 interface AppProps { }
 
-// interface HipInput {
-//   hipRotation: Number;
-//   hipVelocity: Number;
-// }
+type Data = {
+  hipData: HipInput;
+  shoulderData: ShoulderInput;
+}
 
-// interface ShoulderInput {
-//   shoulderRotation: Number;
-//   shoulderVelocity: Number;
-// }
+interface HipInput {
+  hipRotation: Number;
+  hipVelocity: Number;
+}
+
+interface ShoulderInput {
+  shoulderRotation: Number;
+  shoulderVelocity: Number;
+}
 
 export default function App({ }: AppProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const [hipMetric, setHipMetric] = useState<HipInput>();
+  const [shoulderMetric, setShoulderMetric] = useState<ShoulderInput>();
 
-  const demo = () => {
+  useEffect(() => {
+    socket.on('connect', () => console.log('Connected'));
+    socket.on('disconnect', () => console.log('Diconnected'));
+
+    // Metrics Event Listener
+    socket.on('metrics', ({ hipData, shoulderData }: Data) => {
+      setTimeout(() => {
+        setHipMetric(hipData);
+        setShoulderMetric(shoulderData);
+
+        setIsLoading(false);
+      }, 2000);
+    })
+
+    return () => {
+      socket.off('connect');
+      socket.off('metrics');
+      socket.off('disconnect');
+    }
+  }, []);
+
+  const startMetrics = () => {
+    setLoadingMessage("Getting data...");
     setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
+    socket.emit('start');
   }
 
 
   const Metric = ({ type, input }: { type: string, input: Number }) => {
-    if (input >= 1 && input <= 3) {
+    if (input === 0) {
+      return (
+        <div className="p-10 rounded bg-gray-700 flex flex-col justify-center items-center">
+          <p className="text-white">{type} <span className="font-bold">No Data</span></p>
+        </div>
+      )
+    } else if (input >= 1 && input <= 3) {
       return (
         <div className="p-10 rounded bg-red-500 flex flex-col justify-center items-center">
-          <p className="text-white">{type} {input}</p>
+          <p className="text-white">{type} <span className="font-bold">{input}</span></p>
         </div>
       )
     } else if (input >= 4 && input <= 6) {
       return (
         <div className="p-10 rounded bg-yellow-500 flex flex-col justify-center items-center">
-          <p className="text-white">{type} {input}</p>
+          <p className="text-white">{type} <span className="font-bold">{input}</span></p>
         </div>
       )
     } else {
       return (
         <div className="p-10 rounded bg-green-500 flex flex-col justify-center items-center">
-          <p className="text-white">{type} {input}</p>
+          <p className="text-white">{type} <span className="font-bold">{input}</span></p>
         </div>
       )
     }
@@ -53,7 +87,7 @@ export default function App({ }: AppProps) {
       {isLoading &&
         (
           <div className="w-full h-screen bg-gray-700/75 absolute flex flex-col gap-2 justify-center items-center">
-            <h1 className="text-2xl text-white">Calibrating</h1>
+            <h1 className="text-2xl text-white">{loadingMessage}</h1>
             <div role="status">
               <svg aria-hidden="true" className="mr-2 w-20 h-20 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"></path>
@@ -69,20 +103,19 @@ export default function App({ }: AppProps) {
         </div>
 
         <div className="w-full flex gap-4">
-          <div className="w-1/2 bg-orange-500 text-white font-bold flex justify-center items-center py-2 cursor-pointer hover:bg-gray-700" onClick={() => alert('start')}>Start</div>
-          <div className="w-1/2 bg-orange-500 text-white font-bold flex justify-center items-center py-2 cursor-pointer hover:bg-gray-700" onClick={() => demo()}>Calibrate</div>
+          <div className="w-full bg-orange-500 text-white font-bold flex justify-center items-center py-2 cursor-pointer hover:bg-gray-700" onClick={startMetrics}>Start</div>
         </div>
 
         <h1 className="text-xl">Metrics</h1>
 
         <div className="w-full grid grid-cols-4 gap-4">
-          <Metric type={"Hip Rotation"} input={2} />
-          <Metric type={"Hip Velocity"} input={4} />
-          <Metric type={"Shoulder Rotation"} input={7} />
-          <Metric type={"Shoulder Velocity"} input={3} />
+          <Metric type={"Hip Rotation"} input={hipMetric?.hipRotation ?? 0} />
+          <Metric type={"Hip Velocity"} input={hipMetric?.hipVelocity ?? 0} />
+          <Metric type={"Shoulder Rotation"} input={shoulderMetric?.shoulderRotation ?? 0} />
+          <Metric type={"Shoulder Velocity"} input={shoulderMetric?.shoulderVelocity ?? 0} />
         </div>
 
-        <div className="w-full bg-orange-500 text-white font-bold flex justify-center items-center py-2 cursor-pointer hover:bg-gray-700" onClick={() => alert('start')}>Metrics Explained</div>
+        <div className="w-full bg-orange-500 text-white font-bold flex justify-center items-center py-2 cursor-pointer hover:bg-gray-700" onClick={() => alert('Redirect to metrics explained')}>Metrics Explained</div>
       </div>
     </div >
   );
